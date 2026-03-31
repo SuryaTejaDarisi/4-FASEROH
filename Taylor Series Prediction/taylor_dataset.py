@@ -33,51 +33,13 @@ import json
 import os
 import torch
 import sympy as sp
-from sympy import symbols, sin, cos, tan, exp, log, series, Rational, nsimplify, Integer
+from sympy import symbols, sin, cos, tan, exp, log, series, sqrt, Rational, nsimplify, Integer
 
 x = symbols("x")
-
-# Expansion points used: standard Maclaurin + two others
 EXPANSION_POINTS = [0, Rational(1, 2), 1]
-
 # Maximum absolute value of a rational coefficient we are willing to tokenize.
-# Coefficients outside this range are too large for the vocabulary and the
-# sample is discarded.
+# Coefficients outside this range are too large for the vocabulary and the sample is discarded.
 MAX_COEFF = 120
-
-
-# -----------------------------------------------------------------------
-# Vocabulary of rational numbers that appear in low-order Taylor series.
-# These are the only numeric tokens the tokenizer needs.
-# -----------------------------------------------------------------------
-
-# def _common_rationals():
-#     """
-#     Return the set of rational number strings that can appear as
-#     coefficients in Taylor expansions up to order 4.
-
-#     This covers factorials up to 4! = 24, and their multiples by small
-#     integers, which is sufficient for all functions we generate.
-#     """
-#     rats = set()
-#     for num in range(0, MAX_COEFF + 1):
-#         for den in [1, 2, 3, 4, 6, 8, 12, 24, 120]:
-#             if den == 1:
-#                 rats.add(str(num))
-#                 rats.add(str(-num))
-#             else:
-#                 from math import gcd
-#                 g = gcd(abs(num), den)
-#                 n2, d2 = num // g, den // g
-#                 if d2 != 1:
-#                     rats.add(f"{n2}/{d2}")
-#                     rats.add(f"{-n2}/{d2}")
-#     rats.discard("0/1")
-#     rats.discard("-0")
-#     return rats
-
-import sympy as sp
-from sympy import symbols, sin, cos, tan, exp, log, sqrt, Rational, Integer
 
 def _prefix_to_sympy(tokens):
     """
@@ -89,9 +51,7 @@ def _prefix_to_sympy(tokens):
     """
     if not tokens:
         raise ValueError("Empty token list during prefix parsing")
-
-    # Work with a copy or just use index-based recursion
-    token_list = list(tokens)
+    token_list = list(tokens) # Work with a copy or just use index-based recursion
 
     def pop_and_parse(data):
         if not data:
@@ -99,11 +59,11 @@ def _prefix_to_sympy(tokens):
         
         token = data.pop(0)
 
-        # 1. Variables and Constants
+        # Variables and Constants
         if token == 'x':
             return sp.Symbol('x')
         
-        # Handle rational strings like "1/2" or "-1/6"
+        # Rational strings like "1/2" or "-1/6"
         if '/' in token and not token in ['/', 'sin', 'cos', 'exp']: 
             try:
                 p, q = map(int, token.split('/'))
@@ -117,7 +77,7 @@ def _prefix_to_sympy(tokens):
         except ValueError:
             pass
 
-        # 2. Unary Functions (Arity 1)
+        # Unary Functions (Arity 1)
         unary_map = {
             "sin": sp.sin, "cos": sp.cos, "tan": sp.tan,
             "exp": sp.exp, "log": sp.log, "sqrt": sp.sqrt,
@@ -127,13 +87,13 @@ def _prefix_to_sympy(tokens):
             arg = pop_and_parse(data)
             return unary_map[token](arg)
 
-        # 3. Named Powers (Arity 1)
+        # 3Named Powers (Arity 1)
         pow_names = {"pow2": 2, "pow3": 3, "pow4": 4}
         if token in pow_names:
             arg = pop_and_parse(data)
             return sp.Pow(arg, pow_names[token])
 
-        # 4. Binary Operators (Arity 2)
+        # Binary Operators (Arity 2)
         if token == "+":
             left = pop_and_parse(data)
             right = pop_and_parse(data)
@@ -161,63 +121,41 @@ def _prefix_to_sympy(tokens):
 
 
 
-def custom_collate_fn(batch):
-    """
-    batch: list of tuples (src, tgt, lbl, src_tokens)
-    """
-    # 1.Separate the components
+def custom_collate_fn(batch): # batch -> list of tuples (src, tgt, lbl, src_tokens)
     src_list, tgt_list, lbl_list, tokens_list = zip(*batch)
-    
-    # 2. Stack the tensors (assuming they are already padded in the Dataset)
     src_stacked = torch.stack(src_list)
     tgt_stacked = torch.stack(tgt_list)
     lbl_stacked = torch.stack(lbl_list)
     
-    # 3. Keep the tokens as a raw list of lists
     return src_stacked, tgt_stacked, lbl_stacked, list(tokens_list)
 
 
-# -----------------------------------------------------------------------
 # Prefix notation serialiser for sympy expressions
-# -----------------------------------------------------------------------
-
 def expr_to_prefix(expr):
     """
     Convert a sympy expression to a prefix-notation token list.
-
-    Handles: Add, Mul, Pow, sin, cos, tan, exp, log, Integer, Rational,
-             Symbol (x).
-
-    Returns a list of strings, or None if the expression contains
-    something we do not know how to serialise.
+    Handles: Add, Mul, Pow, sin, cos, tan, exp, log, Integer, Rational, Symbol (x).
+    Returns a list of strings or None
     """
     if isinstance(expr, sp.Symbol):
         return [str(expr)]
-
     if isinstance(expr, Integer):
         return [str(int(expr))]
-
     if isinstance(expr, Rational):
         # Represent as "p/q" string token
         return [f"{expr.p}/{expr.q}"]
-
     if isinstance(expr, sp.Float):
         # Try to convert to a nearby rational
         r = nsimplify(expr, rational=True, tolerance=1e-9)
         return expr_to_prefix(r)
-
     if isinstance(expr, sp.core.numbers.NegativeOne):
         return ["-1"]
-
     if isinstance(expr, sp.core.numbers.Half):
         return ["1/2"]
-
     if isinstance(expr, sp.core.numbers.One):
         return ["1"]
-
     if isinstance(expr, sp.core.numbers.Zero):
         return ["0"]
-
     if isinstance(expr, sp.core.numbers.NaN):
         return None
 
@@ -236,13 +174,13 @@ def expr_to_prefix(expr):
             return None
         return [func_map[type(expr)]] + arg_tokens
 
-    # Power: x**n -> handled as pow2/pow3/pow4 or generic **
+
+
     if isinstance(expr, sp.Pow):
         base, exp_val = expr.args
         base_tokens = expr_to_prefix(base)
         if base_tokens is None:
             return None
-        # Named power tokens for common integer exponents
         pow_names = {2: "pow2", 3: "pow3", 4: "pow4"}
         if isinstance(exp_val, Integer) and int(exp_val) in pow_names:
             return [pow_names[int(exp_val)]] + base_tokens
@@ -263,10 +201,6 @@ def expr_to_prefix(expr):
     # Multiplication: handle as a left-fold of binary * over all args
     if isinstance(expr, sp.Mul):
         args = list(expr.args)
-
-        # Separate one numeric coefficient (if any) from the rest.
-        # Do NOT reconstruct sp.Mul from the remaining args - that causes
-        # infinite recursion when sympy simplifies back to the same form.
         coeff = None
         rest = []
         for a in args:
@@ -279,7 +213,6 @@ def expr_to_prefix(expr):
             else:
                 rest.append(a)
 
-        # If everything was numeric (constant expression)
         if not rest:
             total = Integer(1)
             for a in args:
@@ -310,11 +243,8 @@ def expr_to_prefix(expr):
             return None
         return ["*"] + coeff_tokens + rest_tokens
 
-    # Addition (n-ary -> left-fold into binary +)
     if isinstance(expr, sp.Add):
         args = list(expr.args)
-        # Start from the last argument and fold right-to-left so the
-        # token list reads naturally left-to-right
         result = expr_to_prefix(args[-1])
         if result is None:
             return None
@@ -324,20 +254,11 @@ def expr_to_prefix(expr):
                 return None
             result = ["+"] + a_tokens + result
         return result
-
-    # Anything else we do not handle
     return None
 
 
-# -----------------------------------------------------------------------
-# Function families
-# -----------------------------------------------------------------------
-
+# Function Families -> Return a list of (sympy_expr, label_str) pairs covering all required function families.
 def _base_functions():
-    """
-    Return a list of (sympy_expr, label_str) pairs covering all
-    required function families.
-    """
     fns = []
 
     # Polynomials
@@ -363,7 +284,7 @@ def _base_functions():
     fns.append((exp(x**2), "exp(x^2)"))
     fns.append((exp(-x**2), "exp(-x^2)"))
 
-    # Log (shifted so domain includes expansion point)
+    # Log
     fns.append((log(1 + x),   "log(1+x)"))
     fns.append((log(2 + x),   "log(2+x)"))
     fns.append((log(1 + x**2), "log(1+x^2)"))
@@ -387,8 +308,7 @@ def _base_functions():
 def _compute_taylor(fn_expr, a, order=4):
     """
     Compute the Taylor expansion of fn_expr around x=a up to given order.
-    Returns the polynomial as a sympy expression with O() removed,
-    or None if computation fails or result is trivial (constant 0).
+    Returns the polynomial as a sympy expression
     """
     try:
         with warnings.catch_warnings():
@@ -404,25 +324,19 @@ def _compute_taylor(fn_expr, a, order=4):
         return None
 
 
-def _tokens_valid(tokens, vocab):
-    """Returns True if every token in the list is in the known vocabulary"""
-    return all(t in vocab for t in tokens)
+def _tokens_valid(tokens, vocab): 
+    return all(t in vocab for t in tokens) # Returns True if every token in the list is in the known vocabulary
 
 
-def generate_taylor_dataset(n_samples=5000, order=4, seed=42, verbose=True):
+def generate_taylor_dataset(n_samples=5000, order=4, seed=42, verbose=True): # order -> max pow of terms
     """
-    Generate a dataset of (input_tokens, target_tokens, expansion_point)
-    triples.
-
-    Parameters:
-    n_samples : int             (Desired dataset size)
-    order : int                 Taylor expansion order (default 4)
+    Generate a dataset of (input_tokens, target_tokens, expansion_point) triplet
 
     Returns:
     list of dicts with keys:
         input_tokens, target_tokens  : list of str
         fn_str        : str  (human-readable function string)
-        expansion_pt  : str  (e.g. "0", "1/2", "1")
+        expansion_pt  : str  (in "0", "1/2", "1")
     """
     rng = random.Random(seed)
     vocab = _build_vocab()
@@ -430,22 +344,15 @@ def generate_taylor_dataset(n_samples=5000, order=4, seed=42, verbose=True):
     base_fns = _base_functions()
     samples = []
     attempts = 0
-    # report_every = max(1, n_samples // 10)
-    report_every = 100
 
     while len(samples) < n_samples:
         attempts += 1
-
         fn_expr, fn_label = rng.choice(base_fns)
         a = rng.choice(EXPANSION_POINTS)
-
-        # Substitute x -> x + (a - a) in the expansion so the series is
-        # in terms of (x - a) and expressed as a polynomial in x
         taylor = _compute_taylor(fn_expr, a, order)
         if taylor is None:
             continue
 
-        # Serialise input and target to prefix tokens
         in_tokens = expr_to_prefix(fn_expr)
         tgt_tokens = expr_to_prefix(taylor)
 
@@ -456,8 +363,7 @@ def generate_taylor_dataset(n_samples=5000, order=4, seed=42, verbose=True):
         if not _tokens_valid(in_tokens, vocab) or not _tokens_valid(tgt_tokens, vocab):
             continue
 
-        # Discard very long sequences (harder to train on)
-        if len(in_tokens) > 20 or len(tgt_tokens) > 50:
+        if len(in_tokens) > 20 or len(tgt_tokens) > 50: # Discard very long sequences
             continue
 
         a_str = str(a) if isinstance(a, int) else f"{a.p}/{a.q}"
@@ -469,7 +375,7 @@ def generate_taylor_dataset(n_samples=5000, order=4, seed=42, verbose=True):
             "expansion_pt":  a_str,
         })
 
-        if verbose and len(samples) % report_every == 0:
+        if verbose and len(samples) % 100 == 0:
             print(f"  {len(samples)}/{n_samples} samples "
                   f"(attempt {attempts}, "
                   f"success rate {len(samples)/attempts*100:.0f}%)")

@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Plot Taylor training results")
     parser.add_argument("--out_dir", type=str, default=".\outputs")
@@ -67,8 +66,7 @@ def plot_metric_comparison(results_path, save_dir):
     fig, ax = plt.subplots(figsize=(8, 5))
     for i, (model, color) in enumerate(zip(models, ["steelblue", "coral"])):
         vals = [results[model][m] for m in metrics]
-        bars = ax.bar([v + i * width for v in x], vals, width,
-                      label=model.upper(), color=color, alpha=0.85)
+        bars = ax.bar([v + i * width for v in x], vals, width, label=model.upper(), color=color, alpha=0.85)
         for bar, val in zip(bars, vals):
             ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
                     f"{val:.3f}", ha="center", va="bottom", fontsize=9)

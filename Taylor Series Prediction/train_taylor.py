@@ -1,24 +1,3 @@
-"""
-taylor/train_taylor.py
-
-Trains either the LSTM or the Transformer seq2seq model on the
-Taylor expansion dataset.
-
-Both models use the same training loop, loss function, and checkpointing
-so results are directly comparable.
-
-Usage
------
-Train LSTM:
-    python -m taylor.train_taylor --model lstm --n-samples 5000 --epochs 30
-
-Train Transformer:
-    python -m taylor.train_taylor --model transformer --n-samples 5000 --epochs 30
-
-Load saved dataset:
-    python -m taylor.train_taylor --model lstm --data-path taylor/data/dataset.json
-"""
-
 import os
 import sys
 import json
@@ -28,14 +7,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-
-# Allow running as   python -m taylor.train_taylor   from project root
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from taylor.taylor_tokenizer import TaylorTokenizer
-from taylor.taylor_dataset import generate_taylor_dataset, save_taylor_dataset, load_taylor_dataset, custom_collate_fn
-from taylor.lstm_model import Seq2SeqLSTM
-from taylor.transformer_model import Seq2SeqTransformer
+from taylor_tokenizer import TaylorTokenizer
+from taylor_dataset import generate_taylor_dataset, save_taylor_dataset, load_taylor_dataset, custom_collate_fn
+from lstm_model import Seq2SeqLSTM
+from transformer_model import Seq2SeqTransformer
 from training_utils import set_seed, save_checkpoint, AverageMeter
 
 
@@ -129,11 +106,6 @@ def run_epoch(model, loader, criterion, optimizer, device, is_train, pad_id):
 
     return meter.avg
 
-
-# -----------------------------------------------------------------------
-# Main
-# -----------------------------------------------------------------------
-
 def main():
     args = parse_args()
     set_seed(args.seed)
@@ -144,7 +116,6 @@ def main():
 
     tokenizer = TaylorTokenizer()
 
-    # Data
     if args.data_path and os.path.exists(args.data_path):
         print(f"Loading dataset from {args.data_path}")
         all_samples = load_taylor_dataset(args.data_path)
@@ -226,7 +197,7 @@ def main():
         # print(f"  Epoch {epoch:3d}/{args.epochs} | train={train_loss:.4f}  val={val_loss:.4f}")
         print("-"*100)
 
-    # Save history
+    # Save history for plots
     hist_path = os.path.join(args.out_dir, f"history_{args.model}.json")
     with open(hist_path, "w") as f:
         json.dump(history, f, indent=2)

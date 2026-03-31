@@ -1,27 +1,11 @@
-"""
-taylor/visualize_dataset.py
-
-Visualises the Taylor expansion dataset:
-  1. Sample distribution by function type and expansion point
-  2. Sequence length distributions (input vs target)
-  3. A printed table of N random examples
-
-Usage
------
-    python -m taylor.visualize_dataset
-    python -m taylor.visualize_dataset --data-path taylor/outputs/data/dataset.json --n-examples 10
-"""
-
 import os
 import sys
 import argparse
 import random
 from collections import Counter
-
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from taylor.taylor_dataset import generate_taylor_dataset, load_taylor_dataset

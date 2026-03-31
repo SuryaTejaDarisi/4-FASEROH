@@ -24,17 +24,6 @@ def set_seed(seed):
 
 
 def save_checkpoint(model, optimizer, epoch, val_loss, path):
-    """
-    Save model weights, optimiser state, and metadata to a .pt file.
-
-    Parameters
-    ----------
-    model : nn.Module
-    optimizer : torch.optim.Optimizer or None
-    epoch : int
-    val_loss : float
-    path : str  output file path
-    """
     state = {
         "epoch": epoch,
         "val_loss": val_loss,
@@ -46,20 +35,6 @@ def save_checkpoint(model, optimizer, epoch, val_loss, path):
 
 
 def load_checkpoint(path, model, optimizer=None):
-    """
-    Load model (and optionally optimiser) state from a checkpoint.
-
-    Parameters
-    ----------
-    path : str
-    model : nn.Module   (weights are loaded in-place)
-    optimizer : torch.optim.Optimizer or None
-
-    Returns
-    -------
-    start_epoch : int  (epoch after the saved one)
-    best_val_loss : float
-    """
     checkpoint = torch.load(path, map_location="cpu")
     model.load_state_dict(checkpoint["model_state"])
     if optimizer is not None and "optimizer_state" in checkpoint:
@@ -74,8 +49,7 @@ class AverageMeter:
     """
     Tracks a running average of a scalar value.
 
-    Example
-    -------
+    Example:
     meter = AverageMeter()
     meter.update(loss.item(), batch_size)
     print(meter.avg)

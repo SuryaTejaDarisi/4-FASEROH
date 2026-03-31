@@ -1,22 +1,9 @@
 """
-taylor/evaluate_taylor.py
-
-Evaluates a trained LSTM or Transformer on the Taylor expansion task.
-
 Metrics
--------
   Token accuracy  : fraction of non-PAD positions with the correct token
   Sequence accuracy: fraction of examples where the full output is correct
   BLEU-4          : corpus-level BLEU score (treats tokens as "words")
   Loss            : cross-entropy on held-out samples
-
-Also prints N prediction examples side-by-side with ground truth.
-
-Usage
------
-    python -m taylor.evaluate_taylor --model lstm  --out-dir taylor/outputs
-    python -m taylor.evaluate_taylor --model transformer --out-dir taylor/outputs
-    python -m taylor.evaluate_taylor --model lstm --model transformer --out-dir taylor/outputs
 """
 
 import os
@@ -25,9 +12,9 @@ import json
 import argparse
 import random
 from collections import Counter
-
 import torch
 import torch.nn as nn
+import math
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -59,10 +46,7 @@ def parse_args():
     return parser.parse_args()
 
 
-# -----------------------------------------------------------------------
-# BLEU-4 (corpus-level, no smoothing, implemented from scratch)
-# -----------------------------------------------------------------------
-
+# ----- BLEU-4 ------
 def _ngrams(sequence, n):
     return [tuple(sequence[i:i+n]) for i in range(len(sequence) - n + 1)]
 
@@ -72,13 +56,9 @@ def corpus_bleu(hypotheses, references, max_n=4):
     Corpus-level BLEU score.
 
     Parameters
-    ----------
-    hypotheses : list of list of int
-    references : list of list of int
+    hypotheses, references : list of list of int
 
-    Returns
-    -------
-    bleu : float in [0, 1]
+    Returns           bleu : float in [0, 1]
     """
     clip_counts   = Counter()
     total_counts  = Counter()
@@ -94,7 +74,6 @@ def corpus_bleu(hypotheses, references, max_n=4):
                 clip_counts[n]  += min(cnt, ref_ng[gram])
                 total_counts[n] += cnt
 
-    import math
     log_bleu = 0.0
     for n in range(1, max_n + 1):
         if total_counts[n] == 0:
@@ -114,10 +93,6 @@ def corpus_bleu(hypotheses, references, max_n=4):
     return bp * math.exp(log_bleu)
 
 
-# -----------------------------------------------------------------------
-# Metrics
-# -----------------------------------------------------------------------
-
 def token_accuracy(pred_ids, true_ids, pad_id):
     """Position-wise accuracy excluding PAD positions."""
     correct = total = 0
@@ -129,39 +104,30 @@ def token_accuracy(pred_ids, true_ids, pad_id):
             correct += 1
     return correct / total if total > 0 else 0.0
 
-def prefix_to_readable(tokens):
-    """
-    Convert a prefix-notation token list back to a human-readable
-    infix string using SymPy.
-
-    Returns the infix string, or the raw token string if parsing fails.
-    """
+def prefix_to_readable(tokens): # Prefix -> Infix
     try:
         expr, _ = _prefix_to_sympy(tokens)
         return str(expr)
     except Exception:
-        return " ".join(tokens)   # fallback: show raw tokens
+        return " ".join(tokens)   # fallback -> show raw tokens
 
 
 def evaluate_model(model, loader, tokenizer, device, n_examples=5):
     model.eval()
     all_hyp = []
     all_ref = []
-    all_src_tokens = []   # added
+    all_src_tokens = []
 
-    for src, tgt, lbl, src_tokens in loader:   # unpack src_tokens
+    for src, tgt, lbl, src_tokens in loader:
         src = src.to(device)
-        preds = model.greedy_decode(
-            src, tokenizer.bos_id, tokenizer.eos_id
-        )
+        preds = model.greedy_decode(src, tokenizer.bos_id, tokenizer.eos_id)
         for i in range(src.size(0)):
             ref = [t for t in lbl[i].tolist() if t != tokenizer.pad_id]
             hyp = preds[i]
             all_hyp.append(hyp)
             all_ref.append(ref)
-            all_src_tokens.append(src_tokens[i])   # added
+            all_src_tokens.append(src_tokens[i])
 
-    # --- token accuracy (unchanged) ---
     acc_vals = []
     for hyp, ref in zip(all_hyp, all_ref):
         min_len = min(len(hyp), len(ref))
@@ -171,17 +137,14 @@ def evaluate_model(model, loader, tokenizer, device, n_examples=5):
         acc_vals.append(correct / len(ref))
     token_acc = 100 * sum(acc_vals) / len(acc_vals) if acc_vals else 0.0
 
-    # --- sequence accuracy (unchanged) ---
     seq_matches = 0
     for hyp, ref in zip(all_hyp, all_ref):
         if tokenizer.decode(hyp, skip_special=True) == tokenizer.decode(ref, skip_special=True):
             seq_matches += 1
     seq_acc = 100 * seq_matches / len(all_hyp)
 
-    # --- BLEU (unchanged) ---
     bleu = corpus_bleu(all_hyp, all_ref) * 100
 
-    # --- examples: now show input, predicted, ground truth ---
     examples = []
     for src_toks, hyp, ref in zip(
         all_src_tokens[:n_examples],
@@ -201,9 +164,6 @@ def evaluate_model(model, loader, tokenizer, device, n_examples=5):
         "examples":          examples,
     }
 
-# -----------------------------------------------------------------------
-# Main
-# -----------------------------------------------------------------------
 
 def _load_model(model_name, tokenizer, args, device):
     ckpt = os.path.join(args.out_dir, f"best_{model_name}.pt")
@@ -285,7 +245,7 @@ def main():
             print(f"         Ground Truth  : {ex['reference']}")
         print()
 
-    # Side-by-side comparison if both models were evaluated
+    # Side-by-side comparison if both models are evaluated
     if "lstm" in all_results and "transformer" in all_results:
         print("--- Comparison ---")
         metrics = ["token_accuracy", "sequence_accuracy", "bleu4"]
