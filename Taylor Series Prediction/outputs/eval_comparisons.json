@@ -1,0 +1,176 @@
+{
+  "lstm": {
+    "token_accuracy": 78.26,
+    "sequence_accuracy": 96.0,
+    "bleu4": 75.72,
+    "examples": [
+      {
+        "input": "x**4",
+        "predicted": "x**4",
+        "reference": "x**4"
+      },
+      {
+        "input": "2*x**2 - 1",
+        "predicted": "2*x**2 - 1",
+        "reference": "2*x**2 - 1"
+      },
+      {
+        "input": "x**2 + x + 1",
+        "predicted": "x**2 + x + 1",
+        "reference": "x**2 + x + 1"
+      },
+      {
+        "input": "2 - x",
+        "predicted": "2 - x",
+        "reference": "2 - x"
+      },
+      {
+        "input": "x**4",
+        "predicted": "x**4",
+        "reference": "x**4"
+      },
+      {
+        "input": "sin(2*x)",
+        "predicted": "-4*x**3/3 + 2*x",
+        "reference": "-4*x**3/3 + 2*x"
+      },
+      {
+        "input": "exp(x) + sin(x)",
+        "predicted": "x**4/24 + x**2/2 + 2*x + 1",
+        "reference": "x**4/24 + x**2/2 + 2*x + 1"
+      },
+      {
+        "input": "2 - x",
+        "predicted": "2 - x",
+        "reference": "2 - x"
+      },
+      {
+        "input": "x**3",
+        "predicted": "x**3",
+        "reference": "x**3"
+      },
+      {
+        "input": "x + 1",
+        "predicted": "x + 1",
+        "reference": "x + 1"
+      },
+      {
+        "input": "x + 3",
+        "predicted": "x + 3",
+        "reference": "x + 3"
+      },
+      {
+        "input": "x**3",
+        "predicted": "x**3",
+        "reference": "x**3"
+      },
+      {
+        "input": "x**4",
+        "predicted": "x**4",
+        "reference": "x**4"
+      },
+      {
+        "input": "exp(x)",
+        "predicted": "x**4/24 + x**3/6 + x**2/2 + x + 1",
+        "reference": "x**4/24 + x**3/6 + x**2/2 + x + 1"
+      },
+      {
+        "input": "exp(2*x)",
+        "predicted": "2*x**4*exp(2)/3 - 4*x**3*exp(2)/3 + 2*x**2*exp(2) - 2*x*exp(2)/3 + exp(2)/3",
+        "reference": "2*x**4/3 + 4*x**3/3 + 2*x**2 + 2*x + 1"
+      },
+      {
+        "input": "x**2 - x + 2",
+        "predicted": "x**2 - x + 2",
+        "reference": "x**2 - x + 2"
+      }
+    ]
+  },
+  "transformer": {
+    "token_accuracy": 79.57,
+    "sequence_accuracy": 97.2,
+    "bleu4": 84.25,
+    "examples": [
+      {
+        "input": "x**4",
+        "predicted": "x**4",
+        "reference": "x**4"
+      },
+      {
+        "input": "2*x**2 - 1",
+        "predicted": "2*x**2 - 1",
+        "reference": "2*x**2 - 1"
+      },
+      {
+        "input": "x**2 + x + 1",
+        "predicted": "x**2 + x + 1",
+        "reference": "x**2 + x + 1"
+      },
+      {
+        "input": "2 - x",
+        "predicted": "2 - x",
+        "reference": "2 - x"
+      },
+      {
+        "input": "x**4",
+        "predicted": "x**4",
+        "reference": "x**4"
+      },
+      {
+        "input": "sin(2*x)",
+        "predicted": "-4*x**3/3 + 2*x",
+        "reference": "-4*x**3/3 + 2*x"
+      },
+      {
+        "input": "exp(x) + sin(x)",
+        "predicted": "x**4/24 + x**2/2 + 2*x + 1",
+        "reference": "x**4/24 + x**2/2 + 2*x + 1"
+      },
+      {
+        "input": "2 - x",
+        "predicted": "2 - x",
+        "reference": "2 - x"
+      },
+      {
+        "input": "x**3",
+        "predicted": "x**3",
+        "reference": "x**3"
+      },
+      {
+        "input": "x + 1",
+        "predicted": "x + 1",
+        "reference": "x + 1"
+      },
+      {
+        "input": "x + 3",
+        "predicted": "x + 3",
+        "reference": "x + 3"
+      },
+      {
+        "input": "x**3",
+        "predicted": "x**3",
+        "reference": "x**3"
+      },
+      {
+        "input": "x**4",
+        "predicted": "x**4",
+        "reference": "x**4"
+      },
+      {
+        "input": "exp(x)",
+        "predicted": "x**4/24 + x**3/6 + x**2/2 + x + 1",
+        "reference": "x**4/24 + x**3/6 + x**2/2 + x + 1"
+      },
+      {
+        "input": "exp(2*x)",
+        "predicted": "2*x**4*exp(2)/3 - 4*x**3*exp(2)/3 + 2*x**2*exp(2) - 2*x*exp(2)/3 + exp(2)/3",
+        "reference": "2*x**4/3 + 4*x**3/3 + 2*x**2 + 2*x + 1"
+      },
+      {
+        "input": "x**2 - x + 2",
+        "predicted": "x**2 - x + 2",
+        "reference": "x**2 - x + 2"
+      }
+    ]
+  }
+}
